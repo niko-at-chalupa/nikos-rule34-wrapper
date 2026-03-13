@@ -4,3 +4,4 @@ testing
 **.pyc
 **__pycache__
 .DS_Store
+ty.toml
