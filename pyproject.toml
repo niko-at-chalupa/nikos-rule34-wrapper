@@ -10,6 +10,7 @@ authors = [
     "Niko"
 ]
 dependencies = [
+    "requests",
     "httpx",
     "python-dotenv",
 ]
