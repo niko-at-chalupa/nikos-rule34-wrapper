@@ -46,9 +46,6 @@ class TagInfo:
                 lines.append(f"    - {value}")
         return "\n".join(lines)
 
-import json
-from typing import Optional
-
 class Post:
     def __init__(
         self,
@@ -71,8 +68,8 @@ class Post:
         source: str,
         has_notes: bool,
         comment_count: int,
-        post_json: Optional[str] = None,
-        tag_info: Optional[TagInfo] = None
+        post_json: str | None = None,
+        tag_info: TagInfo | None = None
     ):
         self._height = height
         self._score = score
@@ -174,11 +171,11 @@ class Post:
         return self._comment_count
 
     @property
-    def post_json(self) -> Optional[str]:
+    def post_json(self) -> str | None:
         return self._post_json
 
     @property
-    def tag_info(self) -> Optional[TagInfo]:
+    def tag_info(self) -> TagInfo | None:
         return self._tag_info
 
     @classmethod

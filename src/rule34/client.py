@@ -1,13 +1,12 @@
 import requests
-from posts import Post
-import json
+from . import Post
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
         self.API_KEY = api_key
         self.USER_ID = user_id
 
-    def list_posts(self, tags: str | set, /, limit: int = 1000, pid: int | None = None) -> list[Post]:
+    def list_posts(self, tags: str | set[str], /, limit: int = 1000, pid: int | None = None) -> list[Post]:
         params = {
             "page": "dapi",
             "s": "post",
@@ -25,6 +24,8 @@ class Client:
         else:
             params["tags"] = tags
         response = requests.get("https://api.rule34.xxx/index.php", params=params)
+        if response.content.decode("utf-8") == "":
+            return []
         return Post.from_multiple_json(response.content.decode("utf-8"))
 
     def get_post(self, post_id: int) -> Post:
