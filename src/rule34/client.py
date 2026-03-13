@@ -1,5 +1,5 @@
 import requests
-from . import Post
+from .posts import Post
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
