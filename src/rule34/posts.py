@@ -1,5 +1,4 @@
 import json
-from dotenv import load_dotenv
 from enum import Enum
 from dataclasses import dataclass, field
 
