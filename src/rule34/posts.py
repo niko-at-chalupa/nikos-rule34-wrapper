@@ -1,6 +1,7 @@
 import json
 from enum import Enum
 from dataclasses import dataclass, field
+from pydantic import BaseModel, Field, model_validator
 
 class Rating(Enum):
     EXPLICIT = 0
@@ -73,7 +74,7 @@ class TagInfo:
                 lines.append(f"    - {value}")
         return "\n".join(lines)
 
-class Post:
+class Post(BaseModel):
     """
     Represents a post on rule34.xxx.
 
@@ -104,7 +105,7 @@ class Post:
         The post's tags.
     post_id : int
         The unique ID to identify the post.
-    witdh : int
+    width : int
         Width of the post's media.
     change : int
         Unix timestamp to when was the last change to the post.
@@ -127,140 +128,33 @@ class Post:
     tag_info : TagInfo | None
         Tags represented by a TagInfo object.
     """
-    def __init__(
-        self,
-        height: int,
-        score: int,
-        file_url: str,
-        parent_id: int,
-        sample_url: str,
-        sample_width: int,
-        sample_height: int,
-        preview_url: str,
-        rating: Rating,
-        tags: set[str],
-        post_id: int,
-        width: int,
-        change: int,
-        hash: str,
-        owner: str,
-        status: str, # I don't know the possibilities (I'm sorry!!!), and I don't know where I can find the posts that aren't "active". I won't make an enum for this, and this should be good enough anyways.
-        # Update: looks like it's either "active" or "deleted". What's confusing me is that it isn't a boolean, but it not being a boolean leads me to believe that there's other states (maybe 'pending')
-        source: str,
-        has_notes: bool,
-        comment_count: int,
-        post_json: str | None = None,
-        tag_info: TagInfo | None = None
-    ):
-        self._height = height
-        self._score = score
-        self._file_url = file_url
-        self._parent_id = parent_id
-        self._sample_url = sample_url
-        self._sample_width = sample_width
-        self._sample_height = sample_height
-        self._preview_url = preview_url
-        self._rating = rating
-        self._tags = tags
-        self._post_id = post_id
-        self._width = width
-        self._change = change
-        self._hash = hash
-        self._owner = owner
-        self._status = status
-        self._source = source
-        self._has_notes = has_notes
-        self._comment_count = comment_count
-        self._post_json = post_json
-        self._tag_info = tag_info
-        # I don't want to type all of this ever again
 
-    @property
-    def height(self) -> int:
-        return self._height
+    height: int
+    score: int
+    file_url: str
+    parent_id: int
+    sample_url: str
+    sample_width: int
+    sample_height: int
+    preview_url: str
+    rating: Rating
+    tags: set[str]
+    post_id: int
+    width: int
+    change: int
+    hash: str
+    owner: str
+    status: str  # Looks like it's either "active" or "deleted". I haven't seen anything other than that, but I assume there is another value because it is a string and not a bool.
+    source: str
+    has_notes: bool
+    comment_count: int
+    post_json: str | None = None
+    tag_info: TagInfo | None = None
 
-    @property
-    def score(self) -> int:
-        return self._score
-
-    @property
-    def file_url(self) -> str:
-        return self._file_url
-
-    @property
-    def parent_id(self) -> int:
-        return self._parent_id
-
-    @property
-    def sample_url(self) -> str:
-        return self._sample_url
-
-    @property
-    def sample_width(self) -> int:
-        return self._sample_width
-
-    @property
-    def sample_height(self) -> int:
-        return self._sample_height
-
-    @property
-    def preview_url(self) -> str:
-        return self._preview_url
-
-    @property
-    def rating(self) -> Rating:
-        return self._rating
-
-    @property
-    def tags(self) -> set[str]:
-        return self._tags
-
-    @property
-    def post_id(self) -> int:
-        return self._post_id
-
-    @property
-    def width(self) -> int:
-        return self._width
-
-    @property
-    def change(self) -> int:
-        return self._change
-
-    @property
-    def hash(self) -> str:
-        return self._hash
-
-    @property
-    def owner(self) -> str:
-        return self._owner
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @property
-    def source(self) -> str:
-        return self._source
-
-    @property
-    def has_notes(self) -> bool:
-        return self._has_notes
-
-    @property
-    def comment_count(self) -> int:
-        return self._comment_count
-
-    @property
-    def post_json(self) -> str | None:
-        return self._post_json
-
-    @property
-    def tag_info(self) -> TagInfo | None:
-        return self._tag_info
+    model_config = {"arbitrary_types_allowed": True}
 
     @classmethod
-    def from_json(cls, post_json: str):
+    def from_json(cls, post_json: str) -> "Post":
         d = json.loads(post_json)
         if isinstance(d, list):
             if len(d) != 1:
