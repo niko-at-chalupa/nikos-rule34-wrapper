@@ -13,6 +13,7 @@ dependencies = [
     "requests",
     "httpx",
     "python-dotenv",
+    "pydantic",
 ]
 
 [tool.setuptools.packages.find]
