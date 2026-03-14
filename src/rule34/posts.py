@@ -142,7 +142,7 @@ class Post(BaseModel):
     post_id: int
     width: int
     change: int
-    hash: str
+    post_hash: str
     owner: str
     status: str  # Looks like it's either "active" or "deleted". I haven't seen anything other than that, but I assume there is another value because it is a string and not a bool.
     source: str
@@ -174,7 +174,7 @@ class Post(BaseModel):
             post_id=d["id"],
             width=d["width"],
             change=d["change"],
-            hash=d["hash"],
+            post_hash=d["hash"],
             owner=d["owner"],
             status=d["status"],
             source=d.get("source", ""),
