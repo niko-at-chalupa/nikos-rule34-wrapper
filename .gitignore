@@ -5,3 +5,4 @@ testing
 **__pycache__
 .DS_Store
 ty.toml
+.vscode
