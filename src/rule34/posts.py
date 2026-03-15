@@ -48,6 +48,8 @@ class TagInfo:
             - doki_doki_literature_club
             - monitoring_(deco*27)
     """
+
+    count: dict[str, int] = field(default_factory=dict)
     general: set[str] = field(default_factory=set)
     meta: set[str] = field(default_factory=set)
     artists: set[str] = field(default_factory=set)
@@ -64,14 +66,17 @@ class TagInfo:
                 case "artist":   result.artists.add(entry["tag"])
                 case "character":result.characters.add(entry["tag"])
                 case "copyrights":result.copyrights.add(entry["tag"])
+            result.count[entry["tag"]] = int(entry["count"])
         return result
     
     def __str__(self) -> str:
         lines = [f"{self.__class__.__name__}:"]
         for field_name, values in self.__dict__.items():
+            if field_name == "count":
+                continue
             lines.append(f"  {field_name}:")
             for value in sorted(values):
-                lines.append(f"    - {value}")
+                lines.append(f"    - {value} ({self.count[value]})")
         return "\n".join(lines)
 
 class Post(BaseModel):
