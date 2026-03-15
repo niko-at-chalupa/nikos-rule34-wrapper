@@ -96,6 +96,10 @@ class Client:
     
     def download_post(self, post: Post, destination: Path, file_name: str | None = None) -> None:
         response = requests.get(post.file_url, stream=True)
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 5))
+            time.sleep(retry_after)
+            response = requests.get(post.file_url, stream=True)
         response.raise_for_status()
         
         file_name2: str = str(post.post_id)
