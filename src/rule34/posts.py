@@ -17,7 +17,7 @@ class Rating(Enum):
         elif value == "s" or value == "safe":
             return cls.SAFE
         else:
-            raise ValueError("Value passed into from_shorthand isn't valid!!")
+            raise ValueError("Value passed into from_string isn't valid!!")
 
 @dataclass
 class TagInfo:
