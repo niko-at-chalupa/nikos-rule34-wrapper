@@ -3,6 +3,7 @@ import requests
 from .posts import Post
 from pathlib import Path
 import magic
+import time
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
@@ -117,28 +118,63 @@ class Client:
         self._add_extension(Path(destination2 / file_name2))
 
 if __name__ == "__main__":
+    from time import perf_counter
     from dotenv import load_dotenv
     import os
-    from time import perf_counter
     start = perf_counter()
     load_dotenv()
     client = Client(os.environ["API_KEY"], os.environ["USER_ID"])
     tags = input("Search (limit of 200 posts will be fetched): ")
-    posts = client.list_posts(tags=tags, limit=200)
+
+    try:
+        from rich.console import Console # type:ignore
+        from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn # type:ignore
+        _rich = True
+        console = Console()
+    except ImportError:
+        _rich = False
+
+    if _rich:
+        with Progress(SpinnerColumn(), "[progress.description]{task.description}", transient=True, console=console) as progress:
+            progress.add_task("Fetching posts...", total=None)
+            posts = client.list_posts(tags=tags, limit=200)
+    else:
+        print("Fetching posts...")
+        posts = client.list_posts(tags=tags, limit=200)
+
     print(f"took {perf_counter() - start}s")
+
     for post in posts:
         print(f"FILE URL: {post.file_url}")
         print(f"ID: {post.post_id}\nPARENT ID: {post.parent_id}")
         print(str(post.tag_info) + "\n---")
+
     def download_posts(posts: list[Post], destination: Path) -> None:
-        for post in posts:
-            client.download_post(post=post, destination=destination)
-            print(f"Downloaded post {str(post.post_id)}")
+        if _rich:
+            with Progress(
+                "[progress.description]{task.description}",
+                BarColumn(),
+                TaskProgressColumn(),
+                TimeElapsedColumn(),
+                console=console,
+            ) as progress:
+                task = progress.add_task("Downloading...", total=len(posts))
+                for post in posts:
+                    client.download_post(post=post, destination=destination)
+                    progress.advance(task)
+                    progress.console.print(f"Downloaded post {str(post.post_id)}")
+        else:
+            for post in posts:
+                client.download_post(post=post, destination=destination)
+                print(f"Downloaded post {str(post.post_id)}")
+
     print(f"{len(posts)} posts")
+
     while True:
-        inputted = input("Download? (y/n)")
+        inputted = input("Download? (y/n) ")
         if inputted.lower() == "y":
             download_posts(posts=posts, destination=Path(input("Destination: ")))
+            print("Finished!!")
             exit()
             exit()
             exit()
