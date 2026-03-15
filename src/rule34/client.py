@@ -1,12 +1,41 @@
+import shlex
 import requests
 from .posts import Post
+from pathlib import Path
+import magic
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
         self.API_KEY = api_key
         self.USER_ID = user_id
 
-    def list_posts(self, tags: str | set[str], /, limit: int = 1000, pid: int | None = None) -> list[Post]:
+    def _add_extension(self, filepath: Path) -> Path:
+        mime = magic.from_file(filepath, mime=True)
+        mimetoext = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/gif": ".gif",
+            "image/webp": ".webp",
+            "image/bmp": ".bmp",
+            "image/tiff": ".tiff",
+            "image/svg+xml": ".svg",
+            "image/avif": ".avif",
+            "video/mp4": ".mp4",
+            "video/quicktime": ".mov",
+            "video/x-msvideo": ".avi",
+            "video/x-matroska": ".mkv",
+            "video/webm": ".webm",
+            "video/mpeg": ".mpeg",
+            "video/3gpp": ".3gp",
+        }
+        ext = mimetoext.get(mime)
+        if not ext:
+            raise ValueError(f"Unsupported or unrecognized MIME type: {mime}")
+        new_path = filepath.with_suffix(filepath.suffix + ext)
+        filepath.rename(new_path)
+        return new_path
+
+    def list_posts(self, tags: str | set[str], limit: int = 1000, pid: int | None = None) -> list[Post]:
         """
         List posts.
 
@@ -63,6 +92,29 @@ class Client:
         }
         response = requests.get("https://api.rule34.xxx/index.php", params=params)
         return Post.from_json(response.content.decode("utf-8"))
+    
+    def download_post(self, post: Post, destination: Path, file_name: str | None = None) -> None:
+        response = requests.get(post.file_url, stream=True)
+        response.raise_for_status()
+        
+        file_name2: str = str(post.post_id)
+        if file_name:
+            file_name2: str = str(file_name)
+        elif destination.suffix: # A way to check if it leads to a file or not
+            file_name2: str = destination.name
+        
+        destination2 = destination
+        if destination.suffix: # A way to check if it leads to a file or not
+            destination2 = destination.parent
+        else:
+            destination2 = destination
+        if not destination2.exists:
+            raise FileNotFoundError(f"{destination2} does NOT exist!")
+
+        with Path(destination2 / file_name2).open("wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        self._add_extension(Path(destination2 / file_name2))
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -71,10 +123,24 @@ if __name__ == "__main__":
     start = perf_counter()
     load_dotenv()
     client = Client(os.environ["API_KEY"], os.environ["USER_ID"])
-    tags = input("input tags you want to search for: ")
-    posts = client.list_posts(tags, limit=4)
+    tags = input("Search (limit of 200 posts will be fetched): ")
+    posts = client.list_posts(tags=tags, limit=200)
     print(f"took {perf_counter() - start}s")
     for post in posts:
         print(f"FILE URL: {post.file_url}")
         print(f"ID: {post.post_id}\nPARENT ID: {post.parent_id}")
         print(str(post.tag_info) + "\n---")
+    def download_posts(posts: list[Post], destination: Path) -> None:
+        for post in posts:
+            client.download_post(post=post, destination=destination)
+            print(f"Downloaded post {str(post.post_id)}")
+    print(f"{len(posts)} posts")
+    while True:
+        inputted = input("Download? (y/n)")
+        if inputted.lower() == "y":
+            download_posts(posts=posts, destination=Path(input("Destination: ")))
+            exit()
+            exit()
+            exit()
+        elif inputted.lower() == "n":
+            exit()
