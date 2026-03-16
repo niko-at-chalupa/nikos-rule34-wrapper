@@ -172,7 +172,6 @@ if __name__ == "__main__":
     start = perf_counter()
     load_dotenv()
     client = Client(os.environ["API_KEY"], os.environ["USER_ID"])
-    #tags = input("Search (limit of 200 posts will be fetched): ")
 
     try:
         from rich.console import Console # type:ignore
@@ -187,8 +186,8 @@ if __name__ == "__main__":
             progress.add_task("Fetching posts...", total=None)
     else:
         print("Fetching posts...")
-    #posts = client.list_posts(tags=tags, limit=200)
-    posts = client.list_posts_from_pool(37405)
+    posts = client.list_posts(tags=input("Search (limit of 200 posts will be fetched): "), limit=200)
+    #posts = client.list_posts_from_pool(37405)
 
     for post in posts:
         print(f"FILE URL: {post.file_url}")
