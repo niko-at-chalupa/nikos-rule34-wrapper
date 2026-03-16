@@ -1,9 +1,12 @@
+from rich.markdown import ListElement
 import shlex
 import requests
 from .posts import Post
 from pathlib import Path
 import magic
 import time
+from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
@@ -92,6 +95,11 @@ class Client:
             "json": "1"
         }
         response = requests.get("https://api.rule34.xxx/index.php", params=params)
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 5))
+            time.sleep(retry_after)
+            response = requests.get("https://api.rule34.xxx/index.php", params=params)
+        response.raise_for_status()
         return Post.from_json(response.content.decode("utf-8"))
     
     def download_post(self, post: Post, destination: Path, file_name: str | None = None) -> None:
@@ -121,6 +129,42 @@ class Client:
                 f.write(chunk)
         self._add_extension(Path(destination2 / file_name2))
 
+    def list_posts_from_pool(self, pool_id: int) -> list[Post]:
+        def get_post_ids_from_html(html: str) -> list[int]:
+            soup = BeautifulSoup(html, "lxml")
+            post_ids = []
+            for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
+                try:
+                    post_ids.append(int(span["id"][1:]))  # strip the leading "p"
+                except ValueError:
+                    continue
+            return post_ids
+        
+        params = {
+            "page": "pool",
+            "s": "show",
+            "id": pool_id
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = requests.get(f"https://rule34.xxx/index.php", params=params, headers=headers)
+        if response.status_code == 429:
+            retry_after = int(response.headers.get("Retry-After", 5))
+            time.sleep(retry_after)
+            response = requests.get(f"https://rule34.xxx/index.php", params=params, headers=headers)
+        response.raise_for_status()
+        html = response.content.decode("utf-8")
+        post_ids = get_post_ids_from_html(html)
+        
+        posts = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
+            for future in as_completed(futures):
+                posts.append(future.result())
+
+        return posts
+
 if __name__ == "__main__":
     from time import perf_counter
     from dotenv import load_dotenv
@@ -128,7 +172,7 @@ if __name__ == "__main__":
     start = perf_counter()
     load_dotenv()
     client = Client(os.environ["API_KEY"], os.environ["USER_ID"])
-    tags = input("Search (limit of 200 posts will be fetched): ")
+    #tags = input("Search (limit of 200 posts will be fetched): ")
 
     try:
         from rich.console import Console # type:ignore
@@ -141,17 +185,17 @@ if __name__ == "__main__":
     if _rich:
         with Progress(SpinnerColumn(), "[progress.description]{task.description}", transient=True, console=console) as progress:
             progress.add_task("Fetching posts...", total=None)
-            posts = client.list_posts(tags=tags, limit=200)
     else:
         print("Fetching posts...")
-        posts = client.list_posts(tags=tags, limit=200)
-
-    print(f"took {perf_counter() - start}s")
+    #posts = client.list_posts(tags=tags, limit=200)
+    posts = client.list_posts_from_pool(37405)
 
     for post in posts:
         print(f"FILE URL: {post.file_url}")
         print(f"ID: {post.post_id}\nPARENT ID: {post.parent_id}")
         print(str(post.tag_info) + "\n---")
+
+    print(f"took {perf_counter() - start}s")
 
     def download_posts(posts: list[Post], destination: Path) -> None:
         if _rich:

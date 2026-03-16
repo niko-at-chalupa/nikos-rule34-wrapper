@@ -16,6 +16,8 @@ dependencies = [
     "pydantic",
     "shlex",
     "python-magic",
+    "beautifulsoup4",
+    "lxml",
 ]
 
 [tool.setuptools.packages.find]
