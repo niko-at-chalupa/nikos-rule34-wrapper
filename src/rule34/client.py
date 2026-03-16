@@ -1,4 +1,3 @@
-from rich.markdown import ListElement
 import shlex
 import requests
 from .posts import Post
@@ -175,6 +174,7 @@ if __name__ == "__main__":
 
     try:
         from rich.console import Console # type:ignore
+        from rich.markdown import ListElement # type:ignore
         from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn # type:ignore
         _rich = True
         console = Console()
