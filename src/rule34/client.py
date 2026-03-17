@@ -6,6 +6,14 @@ import magic
 import time
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+
+logger = logging.getLogger(__name__)
+formatter = logging.Formatter("[%(levelname)s] %(name)s: %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+logger.setLevel(logging.WARNING)
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
@@ -15,15 +23,20 @@ class Client:
     def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
         for attempt in range(max_retries):
             try:
+                logger.debug(f"Attempting request to {url} (attempt {attempt + 1}/{max_retries})")
                 response = requests.get(url, params=params, headers=headers, stream=stream)
                 if response.status_code == 429:
                     retry_after = int(response.headers.get("Retry-After", 5))
+                    logger.warning(f"Rate limited!!! (429), retrying after {retry_after}s")
                     time.sleep(retry_after)
                     continue
                 response.raise_for_status()
+                logger.debug(f"Request to {url} succeeded")
                 return response
             except requests.RequestException as e:
+                logger.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt == max_retries - 1:
+                    logger.error(f"Request to {url} failed after {max_retries} attempts")
                     raise
                 time.sleep(2 ** attempt)  # bad idea
         raise RuntimeError("ERROR !!!!!!!!!!!!! 😭😭😭")
