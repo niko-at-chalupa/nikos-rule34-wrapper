@@ -17,6 +17,7 @@ dependencies = [
     "python-magic",
     "beautifulsoup4",
     "lxml",
+    "platformdirs",
 ]
 
 [tool.setuptools.packages.find]
