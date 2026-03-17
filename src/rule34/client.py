@@ -12,6 +12,22 @@ class Client:
         self.API_KEY = api_key
         self.USER_ID = user_id
 
+    def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, params=params, headers=headers, stream=stream)
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", 5))
+                    time.sleep(retry_after)
+                    continue
+                response.raise_for_status()
+                return response
+            except requests.RequestException as e:
+                if attempt == max_retries - 1:
+                    raise
+                time.sleep(2 ** attempt)  # bad idea
+        raise RuntimeError("ERROR !!!!!!!!!!!!! 😭😭😭")
+
     def _add_extension(self, filepath: Path) -> Path:
         mime = magic.from_file(filepath, mime=True)
         mimetoext = {
@@ -69,7 +85,7 @@ class Client:
             params["tags"] = " ".join(tags)
         else:
             params["tags"] = tags
-        response = requests.get("https://api.rule34.xxx/index.php", params=params)
+        response = self._get_with_retry("https://api.rule34.xxx/index.php", params=params)
         if response.content.decode("utf-8") == "":
             return []
         return Post.from_multiple_json(response.content.decode("utf-8"))
@@ -93,21 +109,11 @@ class Client:
             "id": post_id,
             "json": "1"
         }
-        response = requests.get("https://api.rule34.xxx/index.php", params=params)
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 5))
-            time.sleep(retry_after)
-            response = requests.get("https://api.rule34.xxx/index.php", params=params)
-        response.raise_for_status()
+        response = self._get_with_retry("https://api.rule34.xxx/index.php", params=params)
         return Post.from_json(response.content.decode("utf-8"))
     
     def download_post(self, post: Post, destination: Path, file_name: str | None = None) -> None:
-        response = requests.get(post.file_url, stream=True)
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 5))
-            time.sleep(retry_after)
-            response = requests.get(post.file_url, stream=True)
-        response.raise_for_status()
+        response = self._get_with_retry(post.file_url, stream=True)
         
         file_name2: str = str(post.post_id)
         if file_name:
@@ -134,7 +140,8 @@ class Client:
             post_ids = []
             for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
                 try:
-                    post_ids.append(int(span["id"][1:]))  # strip the leading "p"
+                    post_ids.append(int(span["id"][1:]))  #type:ignore 
+                    # strip the leading "p"
                 except ValueError:
                     continue
             return post_ids
@@ -147,12 +154,7 @@ class Client:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
         }
-        response = requests.get(f"https://rule34.xxx/index.php", params=params, headers=headers)
-        if response.status_code == 429:
-            retry_after = int(response.headers.get("Retry-After", 5))
-            time.sleep(retry_after)
-            response = requests.get(f"https://rule34.xxx/index.php", params=params, headers=headers)
-        response.raise_for_status()
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         html = response.content.decode("utf-8")
         post_ids = get_post_ids_from_html(html)
         
