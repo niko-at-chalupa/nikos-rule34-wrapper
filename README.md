@@ -3,10 +3,10 @@
 # Niko's rule34 wrapper
 </div>
 
-> !WARNING
+> ![WARNING]
 > The service this pulls media from is an NSFW service!!
 
-> !IMPORTANT
+> ![IMPORTANT]
 > This is still work in progress!! Bugs WILL show up!!
 
 A python wrapper/downloader for rule34.xxx!!
@@ -37,10 +37,10 @@ Optional for enhanced UI:
 ---
 </details>
 
-> !NOTE
+> ![NOTE]
 > This will get uploaded on PyPi in the future!!
 
-> !NOTE
+> ![NOTE]
 > This *should* work on Windows. Otherwise, open an issue!
 
 > Installation through GitHub:
