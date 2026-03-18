@@ -7,3 +7,11 @@ testing
 ty.toml
 .vscode
 **.egg-info
+
+# to be safe and NOT push downloaded content to github
+**.png
+**.jpg
+**.jpeg
+**.gif
+**.mp4
+**.webm
