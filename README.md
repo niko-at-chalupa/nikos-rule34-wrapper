@@ -1,6 +1,6 @@
 <div align="center">
 
-# Niko's rule34 wrapper
+# Niko's Rule34 Wrapper
 </div>
 
 > [!WARNING]
