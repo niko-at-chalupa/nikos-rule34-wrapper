@@ -38,7 +38,7 @@ class Client:
                 if attempt == max_retries - 1:
                     logger.error(f"Request to {url} failed after {max_retries} attempts")
                     raise
-                time.sleep(2 ** attempt)  # bad idea
+                time.sleep(2 ** attempt)
         raise RuntimeError("ERROR !!!!!!!!!!!!! 😭😭😭")
 
     def _add_extension(self, filepath: Path) -> Path:
