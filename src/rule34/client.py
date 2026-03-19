@@ -67,6 +67,17 @@ class Client:
         filepath.rename(new_path)
         return new_path
 
+    def _get_post_ids_from_html(self, html: str) -> list[int]:
+        soup = BeautifulSoup(html, "lxml")
+        post_ids = []
+        for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
+            try:
+                post_ids.append(int(span["id"][1:]))  #type:ignore 
+                # strip the leading "p"
+            except ValueError:
+                continue
+        return post_ids
+
     def list_posts(self, tags: str | set[str], limit: int = 1000, pid: int | None = None) -> list[Post]:
         """
         List posts.
@@ -148,17 +159,6 @@ class Client:
         self._add_extension(Path(destination2 / file_name2))
 
     def list_posts_from_pool(self, pool_id: int) -> list[Post]:
-        def get_post_ids_from_html(html: str) -> list[int]:
-            soup = BeautifulSoup(html, "lxml")
-            post_ids = []
-            for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
-                try:
-                    post_ids.append(int(span["id"][1:]))  #type:ignore 
-                    # strip the leading "p"
-                except ValueError:
-                    continue
-            return post_ids
-        
         params = {
             "page": "pool",
             "s": "show",
@@ -168,8 +168,8 @@ class Client:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
-        html = response.content.decode("utf-8")
-        post_ids = get_post_ids_from_html(html)
+        html = str(response.content.decode("utf-8"))
+        post_ids = self._get_post_ids_from_html(html=html)
         
         posts = []
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -178,3 +178,5 @@ class Client:
                 posts.append(future.result())
 
         return posts
+
+    #def list_posts_from_favorites(self, user: int) -> list[Post]:
