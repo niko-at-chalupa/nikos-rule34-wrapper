@@ -248,3 +248,26 @@ class Client:
 
         return posts
 
+    def list_post_ids_from_pool(self, pool_id: int) -> list[int]:
+        params = {
+            "page": "pool",
+            "s": "show",
+            "id": pool_id
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
+        return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
+
+    def list_post_ids_from_favorites(self, user: int) -> list[int]:
+        params = {
+            "page": "favorites",
+            "s": "view",
+            "id": user
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
+        return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
