@@ -41,21 +41,69 @@ def _add_extension(filepath: Path) -> Path:
         filepath.rename(new_path)
         return new_path
 
-def _get_post_ids_from_html(html: str) -> list[int]:
-    soup = BeautifulSoup(html, "lxml")
-    post_ids = []
-    for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
-        try:
-            post_ids.append(int(span["id"][1:]))  #type:ignore 
-            # strip the leading "p"
-        except ValueError:
-            continue
-    return post_ids
-
 class Client:
     def __init__(self, api_key: str, user_id: str):
         self.API_KEY = api_key
         self.USER_ID = user_id
+
+    def _get_post_ids_from_html(self, html: str, base_url: str, params: dict) -> list[int]:
+        def extract_ids(h: str) -> list[int]:
+            soup = BeautifulSoup(h, "lxml")
+            post_ids = []
+            for tag in soup.find_all(["span", "a"], id=lambda v: v and v.startswith("p")):
+                try:
+                    post_ids.append(int(tag["id"][1:]))
+                except ValueError:
+                    continue
+            return post_ids
+
+        def get_page_pids(h: str) -> list[int]:
+            soup = BeautifulSoup(h, "lxml")
+            paginator = soup.find("div", id="paginator")
+            if not paginator:
+                return []
+
+            last_pid = None
+
+            # <a alt="last page">
+            last_a = paginator.find("a", alt="last page")
+            if last_a:
+                for part in last_a.get("href", "").split("&"):
+                    if part.startswith("pid="):
+                        try:
+                            last_pid = int(part[4:])
+                        except ValueError:
+                            pass
+
+            # <a name="lastpage">
+            if last_pid is None:
+                last_a = paginator.find("a", attrs={"name": "lastpage"})
+                if last_a:
+                    for part in last_a.get("onclick", "").replace("&amp;", "&").split("&"):
+                        if part.startswith("pid="):
+                            try:
+                                #last_pid = int(part.split(";")[0].split(" ")[0][4:])
+                                last_pid = int(part.split(";")[0].replace("'", "")[4:])
+                            except ValueError:
+                                pass
+
+            print(f"DEBUG last_a style1: {paginator.find('a', alt='last page')}")
+            print(f"DEBUG last_a style2: {paginator.find('a', attrs={'name': 'lastpage'})}")
+
+            if last_pid is None:
+                return []
+
+            return list(range(50, last_pid + 50, 50))
+
+        post_ids = extract_ids(html)
+        for pid in get_page_pids(html):
+            paged_params = {**params, "pid": pid}
+            response = self._get_with_retry(base_url, params=paged_params, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+            })
+            post_ids.extend(extract_ids(response.text))
+
+        return post_ids
 
     def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
         for attempt in range(max_retries):
@@ -169,7 +217,7 @@ class Client:
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         html = str(response.content.decode("utf-8"))
-        post_ids = _get_post_ids_from_html(html=html)
+        post_ids = self._get_post_ids_from_html(html=html, base_url="https://rule34.xxx/index.php", params=params)
         
         posts = []
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -179,4 +227,24 @@ class Client:
 
         return posts
 
-    #def list_posts_from_favorites(self, user: int) -> list[Post]:
+    def list_posts_from_favorites(self, user: int) -> list[Post]:
+        params = {
+            "page": "favorites",
+            "s": "view",
+            "id": user
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
+        html = str(response.content.decode("utf-8"))
+        post_ids = self._get_post_ids_from_html(html=html, base_url="https://rule34.xxx/index.php", params=params)
+        
+        posts = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
+            for future in as_completed(futures):
+                posts.append(future.result())
+
+        return posts
+
