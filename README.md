@@ -48,11 +48,6 @@ Optional for enhanced UI:
 > pip install git+https://github.com/niko-at-chalupa/nikos-rule34-wrapper
 > ```
 
-> Installation through GitHub:
-> ```bash
-> pip install git+https://github.com/niko-at-chalupa/nikos-rule34-wrapper
-> ```
-
 Tested on:
 - Linux *(Ubuntu)*
 - MacOS *(Tahoe)*
