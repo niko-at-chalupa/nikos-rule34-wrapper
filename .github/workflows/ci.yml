@@ -26,5 +26,7 @@ jobs:
           pip install .
           pip install pytest
       - name: Run Tests
-        run: |
-          pytest -q
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+          USER_ID: ${{ secrets.USER_ID }}
+        run: pytest -q
