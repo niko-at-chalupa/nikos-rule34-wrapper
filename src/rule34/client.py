@@ -150,7 +150,7 @@ class Client:
             destination2 = destination.parent
         else:
             destination2 = destination
-        if not destination2.exists:
+        if not destination2.exists():
             raise FileNotFoundError(f"{destination2} does NOT exist!")
 
         with Path(destination2 / file_name2).open("wb") as f:
