@@ -15,33 +15,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
 
-class Client:
-    def __init__(self, api_key: str, user_id: str):
-        self.API_KEY = api_key
-        self.USER_ID = user_id
-
-    def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
-        for attempt in range(max_retries):
-            try:
-                logger.debug(f"Attempting request to {url} (attempt {attempt + 1}/{max_retries})")
-                response = requests.get(url, params=params, headers=headers, stream=stream)
-                if response.status_code == 429:
-                    retry_after = int(response.headers.get("Retry-After", 5))
-                    logger.warning(f"Rate limited!!! (429), retrying after {retry_after}s")
-                    time.sleep(retry_after)
-                    continue
-                response.raise_for_status()
-                logger.debug(f"Request to {url} succeeded")
-                return response
-            except requests.RequestException as e:
-                logger.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}")
-                if attempt == max_retries - 1:
-                    logger.error(f"Request to {url} failed after {max_retries} attempts")
-                    raise
-                time.sleep(2 ** attempt)
-        raise RuntimeError("ERROR !!!!!!!!!!!!! 😭😭😭")
-
-    def _add_extension(self, filepath: Path) -> Path:
+def _add_extension(filepath: Path) -> Path:
         mime = magic.from_file(filepath, mime=True)
         mimetoext = {
             "image/jpeg": ".jpg",
@@ -67,16 +41,42 @@ class Client:
         filepath.rename(new_path)
         return new_path
 
-    def _get_post_ids_from_html(self, html: str) -> list[int]:
-        soup = BeautifulSoup(html, "lxml")
-        post_ids = []
-        for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
+def _get_post_ids_from_html(html: str) -> list[int]:
+    soup = BeautifulSoup(html, "lxml")
+    post_ids = []
+    for span in soup.find_all("span", id=lambda v: v and v.startswith("p")):
+        try:
+            post_ids.append(int(span["id"][1:]))  #type:ignore 
+            # strip the leading "p"
+        except ValueError:
+            continue
+    return post_ids
+
+class Client:
+    def __init__(self, api_key: str, user_id: str):
+        self.API_KEY = api_key
+        self.USER_ID = user_id
+
+    def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
+        for attempt in range(max_retries):
             try:
-                post_ids.append(int(span["id"][1:]))  #type:ignore 
-                # strip the leading "p"
-            except ValueError:
-                continue
-        return post_ids
+                logger.debug(f"Attempting request to {url} (attempt {attempt + 1}/{max_retries})")
+                response = requests.get(url, params=params, headers=headers, stream=stream)
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", 5))
+                    logger.warning(f"Rate limited!!! (429), retrying after {retry_after}s")
+                    time.sleep(retry_after)
+                    continue
+                response.raise_for_status()
+                logger.debug(f"Request to {url} succeeded")
+                return response
+            except requests.RequestException as e:
+                logger.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    logger.error(f"Request to {url} failed after {max_retries} attempts")
+                    raise
+                time.sleep(2 ** attempt)
+        raise RuntimeError("ERROR !!!!!!!!!!!!! 😭😭😭")
 
     def list_posts(self, tags: str | set[str], limit: int = 1000, pid: int | None = None) -> list[Post]:
         """
@@ -156,7 +156,7 @@ class Client:
         with Path(destination2 / file_name2).open("wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        self._add_extension(Path(destination2 / file_name2))
+        _add_extension(Path(destination2 / file_name2))
 
     def list_posts_from_pool(self, pool_id: int) -> list[Post]:
         params = {
@@ -169,7 +169,7 @@ class Client:
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         html = str(response.content.decode("utf-8"))
-        post_ids = self._get_post_ids_from_html(html=html)
+        post_ids = _get_post_ids_from_html(html=html)
         
         posts = []
         with ThreadPoolExecutor(max_workers=10) as executor:
