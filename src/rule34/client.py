@@ -130,7 +130,7 @@ class Client:
         """
         List posts.
 
-        # Paremeters
+        # Parameters
         ---
         tags : str | set[str]
             The tags you want to search for while listing.
