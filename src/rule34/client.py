@@ -181,9 +181,27 @@ class Client:
         response = self._get_with_retry("https://api.rule34.xxx/index.php", params=params)
         return Post.from_json(response.content.decode("utf-8"))
     
-    def download_post(self, post: Post, destination: Path, file_name: str | None = None) -> None:
-        response = self._get_with_retry(post.file_url, stream=True)
-        
+    def download_post(self, post: Post, destination: Path, file_name: str | None = None, file_url: str | None = None) -> None:
+        """
+        Download a post's media.
+
+        # Parameters
+        ---
+        post : Post
+            Post to download.
+        destination : Path
+            Directory to where the file will be saved.
+        file_name : str | None
+            Name for the file.
+        file_url : str | None
+            URL to download from. `None` will default to `post.file_url`.
+            You can use stuff like `post.file_url`, `post.preview_url`, & `post.sample_url`.
+        """
+        if not file_url:
+            response = self._get_with_retry(post.file_url, stream=True)
+        else: 
+            response = self._get_with_retry(file_url, stream=True)
+
         file_name2: str = str(post.post_id)
         if file_name:
             file_name2: str = str(file_name)
