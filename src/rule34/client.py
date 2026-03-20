@@ -87,9 +87,6 @@ class Client:
                             except ValueError:
                                 pass
 
-            print(f"DEBUG last_a style1: {paginator.find('a', alt='last page')}")
-            print(f"DEBUG last_a style2: {paginator.find('a', attrs={'name': 'lastpage'})}")
-
             if last_pid is None:
                 return []
 
