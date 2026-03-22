@@ -6,6 +6,20 @@ logger: Incomplete
 formatter: Incomplete
 handler: Incomplete
 
+class Autocompletion:
+    """
+    A single autocompletion.
+
+    # Parameters
+    ---
+    label : str
+        What should be shown to the user in the frontend. It follows the format `{tag} ({count})`.
+    value : str
+        The actual tag.
+    """
+    label: str
+    value: str
+
 class Client:
     API_KEY: Incomplete
     USER_ID: Incomplete
@@ -54,3 +68,4 @@ class Client:
     def list_posts_from_favorites(self, user: int) -> list[Post]: ...
     def list_post_ids_from_pool(self, pool_id: int) -> list[int]: ...
     def list_post_ids_from_favorites(self, user: int) -> list[int]: ...
+    def autocomplete(self, query: str) -> list[Autocompletion]: ...
