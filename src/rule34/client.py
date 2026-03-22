@@ -47,7 +47,7 @@ class Autocompletion:
     """
     A single autocompletion.
 
-    # Parameters
+    # Attributes
     ---
     label : str
         What should be shown to the user in the frontend. It follows the format `{tag} ({count})`.
@@ -244,6 +244,16 @@ class Client:
         _add_extension(Path(destination2 / file_name2))
 
     def list_posts_from_pool(self, pool_id: int) -> list[Post]:
+        """
+        Lists `Post` objects from a pool.
+
+        NOTE: This is slow!! For every single ID in a pool, we get a post from it. If you just want to get the post IDs, use `list_post_ids_from_pool`.
+
+        # Parameters
+        ---
+        pool_id : int
+            The ID of the pool you're getting the posts from.
+        """
         params = {
             "page": "pool",
             "s": "show",
@@ -265,6 +275,16 @@ class Client:
         return posts
 
     def list_posts_from_favorites(self, user: int) -> list[Post]:
+        """
+        Lists `Post` objects from a user's favorites.
+
+        NOTE: This is slow!! For every single ID in their favorites, we get a post from it. If you just want to get the post IDs, use `list_post_ids_from_favorites`.
+
+        # Parameters
+        ---
+        user : int
+            User ID of the user you're getting favorites from.
+        """
         params = {
             "page": "favorites",
             "s": "view",
@@ -286,6 +306,14 @@ class Client:
         return posts
 
     def list_post_ids_from_pool(self, pool_id: int) -> list[int]:
+        """
+        Lists IDs of posts from a pool.
+
+        # Parameters
+        ---
+        pool_id : int
+            The ID of the pool you're getting the post IDs from.
+        """
         params = {
             "page": "pool",
             "s": "show",
@@ -298,6 +326,14 @@ class Client:
         return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
 
     def list_post_ids_from_favorites(self, user: int) -> list[int]:
+        """
+        Lists IDs of posts from a user's favorites.
+
+        # Parameters
+        ---
+        user : int
+            The ID of the user you're getting the favorites from.
+        """
         params = {
             "page": "favorites",
             "s": "view",
@@ -310,6 +346,14 @@ class Client:
         return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
 
     def autocomplete(self, query: str) -> list[Autocompletion]:
+        """
+        Gets autocompletions from an incomplete tag.
+
+        # Parameters
+        ---
+        query : str
+            Any incomplete tag. Works even if blank.
+        """
         params = {
             "q": query,
             "api_key": self.API_KEY,
