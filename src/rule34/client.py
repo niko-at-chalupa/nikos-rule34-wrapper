@@ -1,3 +1,4 @@
+from pydantic.dataclasses import dataclass
 import shlex
 import requests
 from .posts import Post
@@ -40,6 +41,27 @@ def _add_extension(filepath: Path) -> Path:
         new_path = filepath.with_suffix(filepath.suffix + ext)
         filepath.rename(new_path)
         return new_path
+
+@dataclass
+class Autocompletion:
+    """
+    A single autocompletion.
+
+    # Parameters
+    ---
+    label : str
+        What should be shown to the user in the frontend. It follows the format `{tag} ({count})`.
+    value : str
+        The actual tag.
+    """
+    label: str
+    value: str
+
+    def __str__(self):
+        return self.label
+    
+    def __repr__(self):
+        return self.value
 
 class Client:
     def __init__(self, api_key: str, user_id: str):
@@ -286,3 +308,16 @@ class Client:
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
+
+    def autocomplete(self, query: str) -> list[Autocompletion]:
+        params = {
+            "q": query,
+            "api_key": self.API_KEY,
+            "user_id": self.USER_ID
+        }
+        response = self._get_with_retry("https://api.rule34.xxx/autocomplete.php", params=params)
+        d = response.json()
+        completions: list[Autocompletion] = []
+        for completion in d:
+            completions.append(Autocompletion(completion.get("label"), completion.get("value")))
+        return completions
