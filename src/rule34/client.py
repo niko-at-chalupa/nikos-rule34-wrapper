@@ -9,10 +9,25 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 
+class Formatter(logging.Formatter):
+    format_str = "[%(levelname)s] %(level_symbol)s %(name)s: %(message)s"
+
+    symbols = {
+        logging.DEBUG: "\x1b[37m.\x1b[0m",
+        logging.INFO: "\x1b[32m-\x1b[0m",
+        logging.WARNING: "\x1b[33m!\x1b[0m",
+        logging.ERROR: "\x1b[31m!!\x1b[0m",
+        logging.CRITICAL: "\x1b[41m!!!\x1b[0m"
+    }
+
+    def format(self, record):
+        record.level_symbol = self.symbols.get(record.levelno, "?")
+        formatter = logging.Formatter(self.format_str)
+        return formatter.format(record)
+
 logger = logging.getLogger(__name__)
-formatter = logging.Formatter("[%(levelname)s] %(name)s: %(message)s")
 handler = logging.StreamHandler()
-handler.setFormatter(formatter)
+handler.setFormatter(Formatter())
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
 
@@ -127,7 +142,8 @@ class Client:
     def _get_with_retry(self, url: str, params: dict | None = None, headers: dict | None = None, stream: bool = False, max_retries: int = 3) -> requests.Response:
         for attempt in range(max_retries):
             try:
-                logger.debug(f"Attempting request to {url} (attempt {attempt + 1}/{max_retries})")
+                start = time.perf_counter()
+                logger.debug(f"- Attempting request to {url} (attempt {attempt + 1}/{max_retries})")
                 response = requests.get(url, params=params, headers=headers, stream=stream)
                 if response.status_code == 429:
                     retry_after = int(response.headers.get("Retry-After", 5))
@@ -135,7 +151,7 @@ class Client:
                     time.sleep(retry_after)
                     continue
                 response.raise_for_status()
-                logger.debug(f"Request to {url} succeeded")
+                logger.debug(f"Request to {url} succeeded, and the request took {round(time.perf_counter()-start, 2)} seconds")
                 return response
             except requests.RequestException as e:
                 logger.warning(f"Request failed (attempt {attempt + 1}/{max_retries}): {e}")
@@ -264,13 +280,18 @@ class Client:
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         html = str(response.content.decode("utf-8"))
+
+        start = time.perf_counter()
         post_ids = self._get_post_ids_from_html(html=html, base_url="https://rule34.xxx/index.php", params=params)
+        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get post ids from html")
         
+        start = time.perf_counter()
         posts = []
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
             for future in as_completed(futures):
                 posts.append(future.result())
+        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get all Post objects")
 
         return posts
 
@@ -295,13 +316,18 @@ class Client:
         }
         response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
         html = str(response.content.decode("utf-8"))
+
+        start = time.perf_counter()
         post_ids = self._get_post_ids_from_html(html=html, base_url="https://rule34.xxx/index.php", params=params)
-        
+        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get post ids from html")
+
+        start = time.perf_counter()
         posts = []
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
             for future in as_completed(futures):
                 posts.append(future.result())
+        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get all Post objects")
 
         return posts
 
