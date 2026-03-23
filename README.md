@@ -51,7 +51,7 @@ Optional for enhanced UI:
 Tested on:
 - Linux *(Ubuntu)*
 - MacOS *(Tahoe)*
-- Termux
+- Termux *(although some extra setup is done for dependancies)*
 
 ## Usage
 
