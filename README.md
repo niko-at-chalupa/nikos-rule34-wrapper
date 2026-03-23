@@ -43,9 +43,9 @@ Optional for enhanced UI:
 > [!NOTE]
 > This *should* work on Windows. Otherwise, open an issue!
 
-> Installation through GitHub:
+> Installation through PyPi:
 > ```bash
-> pip install git+https://github.com/niko-at-chalupa/nikos-rule34-wrapper
+> pip install nikos-rule34-wrapper
 > ```
 
 Tested on:
