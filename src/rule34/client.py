@@ -25,7 +25,7 @@ class Formatter(logging.Formatter):
         formatter = logging.Formatter(self.format_str)
         return formatter.format(record)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("rule34-client")
 handler = logging.StreamHandler()
 handler.setFormatter(Formatter())
 logger.addHandler(handler)

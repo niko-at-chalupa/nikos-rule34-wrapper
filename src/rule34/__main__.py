@@ -10,7 +10,7 @@ import getpass
 import logging
 import re
 
-logger = logging.getLogger("client")
+logger = logging.getLogger("rule34-client")
 
 user_data = user_data_path("rule34", "niko")
 config_path = user_data / "config.json"
