@@ -8,6 +8,9 @@ from platformdirs import user_data_path
 import json
 import getpass
 import logging
+import re
+
+logger = logging.getLogger("client")
 
 user_data = user_data_path("rule34", "niko")
 config_path = user_data / "config.json"
@@ -30,12 +33,26 @@ client = Client(api_key, user_id)
 
 try:
     from rich.console import Console # type:ignore
+    from rich import print as rprint # type:ignore
     from rich.progress import Progress, SpinnerColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn # type:ignore
     _rich = True
     console = Console()
 except ImportError:
-    print("Install `rich` *(pip install rich)* if you'd like a better CLI experience!!")
+    print("Install `rich` *(`pip install rich`)* if you'd like a better CLI experience!!")
     _rich = False
+
+def rrprint(*args, **kwargs):
+    if _rich:
+        rprint(*args, **kwargs)
+    else:
+        new_args = []
+        for arg in args:
+            if isinstance(arg, str):
+                clean_text = re.sub(r"(?<!\\)\[.*?\]", "", arg)
+                new_args.append(clean_text)
+            else:
+                new_args.append(arg)
+        print(*new_args, **kwargs)
 
 parser = argparse.ArgumentParser(description="Rule34 API wrapper/downloader, download them here!!")
 parser.add_argument("--tags", required=True, help="Search tags")
@@ -45,7 +62,10 @@ parser.add_argument("--destination", type=Path, help="Download destination")
 parser.add_argument("--reset-credentials", action="store_true", help="Prompt for API credentials again and overwrite stored config")
 parser.add_argument("--print-posts", action="store_true", help="Weather to print the posts")
 parser.add_argument("--taginfo", action="store_true",help="Print tags and their catagories *(requires --print-posts)*")
+parser.add_argument("--log-level", default="WARNING", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level *(default: CRITICAL)*")
 args = parser.parse_args()
+
+logger.setLevel(args.log_level.upper())
 
 if not config_path.exists() or args.reset_credentials:
     if args.reset_credentials and config_path.exists():
@@ -118,10 +138,10 @@ if args.print_posts:
                 print("Doesn't have TagInfo")
         print("---")
 elif args.taginfo:
-    print("!!! --taginfo does not work without --print-posts")
+    rrprint("[yellow]! --taginfo doesn't do anything if not paired with --print-posts")
 
-print(f"took {round(perf_counter() - start, 2)}s")
-print(f"{len(posts)} posts")
+print(f"- Took {round(perf_counter() - start, 2)}s")
+print(f"- Found {len(posts)} posts")
 
 def download_posts(posts: list[Post], destination: Path) -> None:
     if _rich:
@@ -136,17 +156,17 @@ def download_posts(posts: list[Post], destination: Path) -> None:
             for post in posts:
                 client.download_post(post=post, destination=destination)
                 progress.advance(task)
-                progress.console.print(f"Downloaded post {str(post.post_id)}")
+                rprint(f"- Downloaded post {str(post.post_id)}")
     else:
         for post in posts:
             client.download_post(post=post, destination=destination)
-            print(f"Downloaded post {str(post.post_id)}")
+            print(f"- Downloaded post {str(post.post_id)}")
 
 if args.download:
     if not args.destination:
-        print("Error: --destination required when --download is set")
+        rrprint("[bold red]!!! --destination required when --download is set")
         exit(1)
     download_posts(posts=posts, destination=args.destination)
-    print("Finished!!")
+    rrprint("[bold green]Finished!!")
 elif not args.print_posts:
-    print("You don't have an operation set up to do anything!!")
+    rrprint("[yellow]! You don't have an operation set up to do anything!!")
