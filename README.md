@@ -62,7 +62,9 @@ python -m rule34 --tags "-ai_generated -scat -3d kasane_teto" --limit 100 --down
 ```
 
 ### Arguments
-- `--tags` *(required)*: Search tags *(e.g., "vocaloid", "sort:score", "-ai_generated")*.
+- `--tags` *(optional)*: Search tags *(e.g., "vocaloid", "sort:score", "-ai_generated")*. One of --tags, --pool-id, or --favorites-user-id must be specified.
+- `--pool-id` *(optional)*: Pool ID to fetch posts from.
+- `--favorites-user-id` *(optional)*: User ID to fetch favorites from.
 - `--limit` *(optional)*: Number of posts to fetch *(default 200, 0 for unlimited)*.
 - `--download` *(flag)*: Enable downloading of posts.
 - `--destination` *(required if downloading)*: Path to save downloaded files.
@@ -84,7 +86,17 @@ On first use, you'll be prompted for your API key and user ID. These are stored 
 
 - Reset credentials:
   ```bash
-  python -m rule34 --tags "kasane_teto sort:score" --reset-credentials # Will prompt for credentials before listing
+  python -m rule34 --tags "kasane_teto sort:score" --reset-credentials --print-posts --taginfo # Will prompt for credentials before listing
+  ```
+
+- Fetch posts from a pool:
+  ```bash
+  python -m rule34 --pool-id 12345 --limit 50 --download --destination ./pool_downloads
+  ```
+
+- Fetch posts from user favorites:
+  ```bash
+  python -m rule34 --favorites-user-id 4525852 --limit 100
   ```
 
 ## API Reference
