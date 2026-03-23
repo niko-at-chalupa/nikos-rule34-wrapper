@@ -19,6 +19,7 @@ dependencies = [
     "lxml",
     "platformdirs",
 ]
+license = {text = "Unlicense"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
