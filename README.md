@@ -116,6 +116,10 @@ See `client.py` for full method details.
 Contributions are welcome!!! PLEASE open an issue or submit a pull request!!!
 
 ## Planned features
-- [ ] Httpx instead of requests
-- [ ] Async support
-- [ ] PyPi package
+> - [ ] Httpx instead of requests
+
+> - [ ] Async support
+
+> - [x] PyPi package 
+>
+> Published at https://pypi.org/project/nikos-rule34-wrapper/!
