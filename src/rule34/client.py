@@ -147,7 +147,7 @@ class Client:
 
     def list_posts(self, tags: str | set[str], limit: int = 1000, pid: int | None = None) -> list[Post]:
         """
-        List posts.
+        List posts from rule34.xxx.
 
         # Parameters
         ---

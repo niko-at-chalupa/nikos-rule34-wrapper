@@ -7,6 +7,7 @@ from pathlib import Path
 from platformdirs import user_data_path
 import json
 import getpass
+import logging
 
 user_data = user_data_path("rule34", "niko")
 config_path = user_data / "config.json"
@@ -42,6 +43,8 @@ parser.add_argument("--limit", type=int, default=200, help="Limit of posts *(0 f
 parser.add_argument("--download", action="store_true", help="Download posts")
 parser.add_argument("--destination", type=Path, help="Download destination")
 parser.add_argument("--reset-credentials", action="store_true", help="Prompt for API credentials again and overwrite stored config")
+parser.add_argument("--print-posts", action="store_true", help="Weather to print the posts")
+parser.add_argument("--taginfo", action="store_true",help="Print tags and their catagories *(requires --print-posts)*")
 args = parser.parse_args()
 
 if not config_path.exists() or args.reset_credentials:
@@ -74,7 +77,7 @@ else:
 client = Client(api_key, user_id)
 
 start = perf_counter()
-posts = []
+posts: list[Post] = []
 pid = 0
 batch_size = 1000
 if _rich:
@@ -101,15 +104,23 @@ else:
         if args.limit > 0 and len(posts) >= args.limit:
             posts = posts[:args.limit]
             break
-        print(f"Fetched page {pid}")
+        print(f"Fetched page {pid/50+1}") # Pages are in base 50. Page one is page 0, page two is page 50...
 #posts = client.list_posts_from_pool(37405)
 
-for post in posts:
-    print(f"FILE URL: {post.file_url}")
-    print(f"ID: {post.post_id}\nPARENT ID: {post.parent_id}")
-    print(str(post.tag_info) + "\n---")
+if args.print_posts:
+    for post in posts:
+        print(f"FILE URL: {post.file_url}")
+        print(f"ID: {post.post_id}\nPARENT ID: {post.parent_id}")
+        if args.taginfo:
+            if post.tag_info:
+                print(str(post.tag_info))
+            else:
+                print("Doesn't have TagInfo")
+        print("---")
+elif args.taginfo:
+    print("!!! --taginfo does not work without --print-posts")
 
-print(f"took {perf_counter() - start}s")
+print(f"took {round(perf_counter() - start, 2)}s")
 print(f"{len(posts)} posts")
 
 def download_posts(posts: list[Post], destination: Path) -> None:
@@ -137,3 +148,5 @@ if args.download:
         exit(1)
     download_posts(posts=posts, destination=args.destination)
     print("Finished!!")
+elif not args.print_posts:
+    print("You don't have an operation set up to do anything!!")
