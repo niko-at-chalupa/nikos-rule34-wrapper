@@ -55,7 +55,9 @@ def rrprint(*args, **kwargs):
         print(*new_args, **kwargs)
 
 parser = argparse.ArgumentParser(description="Rule34 API wrapper/downloader, download them here!!")
-parser.add_argument("--tags", required=True, help="Search tags")
+parser.add_argument("--tags", help="Search tags")
+parser.add_argument("--pool-id", type=int, help="Pool ID to fetch posts from")
+parser.add_argument("--favorites-user-id", type=int, help="User ID to fetch favorites from")
 parser.add_argument("--limit", type=int, default=200, help="Limit of posts *(0 for unlimited)*")
 parser.add_argument("--download", action="store_true", help="Download posts")
 parser.add_argument("--destination", type=Path, help="Download destination")
@@ -64,6 +66,10 @@ parser.add_argument("--print-posts", action="store_true", help="Weather to print
 parser.add_argument("--taginfo", action="store_true",help="Print tags and their catagories *(requires --print-posts)*")
 parser.add_argument("--log-level", default="WARNING", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Set the logging level *(default: CRITICAL)*")
 args = parser.parse_args()
+
+if not args.tags and not args.pool_id and not args.favorites_user_id:
+    print("Must specify --tags, --pool-id, or --favorites-user-id")
+    exit(1)
 
 logger.setLevel(args.log_level.upper())
 
@@ -98,11 +104,30 @@ client = Client(api_key, user_id)
 
 start = perf_counter()
 posts: list[Post] = []
-pid = 0
-batch_size = 1000
-if _rich:
-    with Progress(SpinnerColumn(), "[progress.description]{task.description}", transient=True, console=console) as progress:
-        task = progress.add_task("Fetching posts...", total=None)
+if args.pool_id:
+    print("- Fetching posts from pool...")
+    posts = client.list_posts_from_pool(args.pool_id)
+elif args.favorites_user_id:
+    print("- Fetching posts from favorites...")
+    posts = client.list_posts_from_favorites(args.favorites_user_id)
+else:
+    pid = 0
+    batch_size = 1000
+    if _rich:
+        with Progress(SpinnerColumn(), "[progress.description]{task.description}", transient=True, console=console) as progress:
+            task = progress.add_task("Fetching posts...", total=None)
+            while True:
+                batch = client.list_posts(tags=args.tags, limit=batch_size, pid=pid)
+                if not batch:
+                    break
+                posts.extend(batch)
+                pid += 1
+                if args.limit > 0 and len(posts) >= args.limit:
+                    posts = posts[:args.limit]
+                    break
+                progress.update(task, description=f"Fetching posts... (page {pid})")
+    else:
+        print("Fetching posts...")
         while True:
             batch = client.list_posts(tags=args.tags, limit=batch_size, pid=pid)
             if not batch:
@@ -112,20 +137,10 @@ if _rich:
             if args.limit > 0 and len(posts) >= args.limit:
                 posts = posts[:args.limit]
                 break
-            progress.update(task, description=f"Fetching posts... (page {pid})")
-else:
-    print("Fetching posts...")
-    while True:
-        batch = client.list_posts(tags=args.tags, limit=batch_size, pid=pid)
-        if not batch:
-            break
-        posts.extend(batch)
-        pid += 1
-        if args.limit > 0 and len(posts) >= args.limit:
-            posts = posts[:args.limit]
-            break
-        print(f"Fetched page {pid/50+1}") # Pages are in base 50. Page one is page 0, page two is page 50...
-#posts = client.list_posts_from_pool(37405)
+            print(f"Fetched page {pid/50+1}") # Pages are in base 50. Page one is page 0, page two is page 50...
+
+if args.limit > 0 and len(posts) > args.limit:
+    posts = posts[:args.limit]
 
 if args.print_posts:
     for post in posts:
