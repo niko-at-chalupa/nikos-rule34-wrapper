@@ -39,7 +39,7 @@ def main():
         _rich = True
         console = Console()
     except ImportError:
-        print("Install `rich` *(`pip install rich`)* if you'd like a better CLI experience!!")
+        print("Install `rich` *(`pip install rich` / `pipx inject nikos-rule34-wrapper rich # if you're on pipx`)* if you'd like a better CLI experience!!")
         _rich = False
 
     def rrprint(*args, **kwargs):
