@@ -38,14 +38,16 @@ Optional for enhanced UI:
 </details>
 
 > [!NOTE]
-> This will get uploaded on PyPi in the future!!
-
-> [!NOTE]
 > This *should* work on Windows. Otherwise, open an issue!
 
-> Installation through PyPi:
+> Installation through PyPi *(if you're also using this as a library)*:
 > ```bash
-> pip install nikos-rule34-wrapper
+> pip install nikos-rule34-wrapper rich # rich is optional
+> ```
+
+> Installation through pipx *(if you're only using this to download posts and stuff)*:
+> ```bash
+> pipx install nikos-rule34-wrapper && pipx inject nikos-rule34-wrapper rich # rich is optional
 > ```
 
 Tested on:
@@ -60,6 +62,7 @@ Run the CLI tool:
 ```bash
 python -m rule34 --tags "-ai_generated -scat -3d kasane_teto" --limit 100 --download --destination /path/to/download/
 ```
+...or if you installed with `pipx`, replace `python -m rule34` with just `rule34` *(`rule34 --tags "-ai_gener...`)*
 
 ### Arguments
 - `--tags` *(optional)*: Search tags *(e.g., "vocaloid", "sort:score", "-ai_generated")*. One of --tags, --pool-id, or --favorites-user-id must be specified.
@@ -74,6 +77,13 @@ python -m rule34 --tags "-ai_generated -scat -3d kasane_teto" --limit 100 --down
 On first use, you'll be prompted for your API key and user ID. These are stored securely and reused in future runs.
 
 ### Examples
+
+> [!NOTE]
+> If you installed through `pipx`, remember to replace `python -m rule34` with `rule34`.
+
+> [!IMPORTANT]
+> Some systems use `python3` instead of `python`. Try that if this doesn't work. This doesn't apply to those using `pipx`!
+
 - List posts without downloading:
   ```bash
   python -m rule34 --tags "kasane_teto sort:score" --limit 50
