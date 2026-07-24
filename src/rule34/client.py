@@ -197,7 +197,7 @@ class Client:
             return []
         return Post.from_multiple_json(response.content.decode("utf-8"))
 
-    def get_post(self, post_id: int) -> Post:
+    def get_post(self, post_id: int) -> Post | None:
         """
         Get a post from its ID.
 
@@ -214,10 +214,16 @@ class Client:
             "user_id": self.USER_ID,
             "fields": "tag_info",
             "id": post_id,
-            "json": "1"
+            "json": "1",
         }
         response = self._get_with_retry("https://api.rule34.xxx/index.php", params=params)
-        return Post.from_json(response.content.decode("utf-8"))
+        text = response.content.decode("utf-8").strip()
+
+        if not text or not text.startswith(("{", "[")):
+            logger.warning(f"Failed to parse JSON for post {post_id}. Response body: '{text[:100]}'")
+            return None
+
+        return Post.from_json(text)
     
     def download_post(self, post: Post, destination: Path, file_name: str | None = None, file_url: str | None = None) -> None:
         """
