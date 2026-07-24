@@ -301,40 +301,44 @@ class Client:
 
         return posts
 
-    def list_posts_from_favorites(self, user: int) -> list[Post]:
+    def list_posts_from_favorites(self, user: int, delay: float = 0.3) -> list[Post]:
         """
         Lists `Post` objects from a user's favorites.
 
-        NOTE: This is slow!! For every single ID in their favorites, we get a post from it. If you just want to get the post IDs, use `list_post_ids_from_favorites`.
+        NOTE: This is slow!! For every single ID in their favorites, we get a post from it.
+        If you just want to get the post IDs, use `list_post_ids_from_favorites`.
 
         # Parameters
         ---
         user : int
             User ID of the user you're getting favorites from.
+        delay : float
+            Seconds to wait between each post fetch, to avoid tripping the rate limiter.
         """
-        params = {
-            "page": "favorites",
-            "s": "view",
-            "id": user
-        }
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
-        }
-        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
-        html = str(response.content.decode("utf-8"))
+        post_ids = self.list_post_ids_from_favorites(user)
+        logger.info(f"Found {len(post_ids)} favorite post IDs for user {user}")
 
-        start = time.perf_counter()
-        post_ids = self._get_post_ids_from_html(html=html, base_url="https://rule34.xxx/index.php", params=params)
-        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get post ids from html")
+        if not post_ids:
+            logger.warning(f"No favorite post IDs found for user {user} — check the user ID or that favorites are public")
+            return []
 
-        start = time.perf_counter()
-        posts = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
-            for future in as_completed(futures):
-                posts.append(future.result())
-        logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get all Post objects")
+        posts: list[Post] = []
+        for i, post_id in enumerate(post_ids, start=1):
+            try:
+                post = self.get_post(post_id)
+                if post is not None:
+                    posts.append(post)
+                else:
+                    logger.warning(f"Post {post_id} returned no data, skipping")
+            except Exception as e:
+                logger.error(f"Failed to fetch post {post_id}: {e}")
 
+            if i % 25 == 0 or i == len(post_ids):
+                logger.info(f"Fetched {i}/{len(post_ids)} favorite posts")
+
+            time.sleep(delay)
+
+        logger.info(f"Successfully retrieved {len(posts)}/{len(post_ids)} favorite posts")
         return posts
 
     def list_post_ids_from_pool(self, pool_id: int) -> list[int]:
