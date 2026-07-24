@@ -341,6 +341,46 @@ class Client:
         logger.info(f"Successfully retrieved {len(posts)}/{len(post_ids)} favorite posts")
         return posts
 
+    def list_post_ids_from_pool(self, pool_id: int) -> list[int]:
+        """
+        Lists IDs of posts from a pool.
+
+        # Parameters
+        ---
+        pool_id : int
+            The ID of the pool you're getting the post IDs from.
+        """
+        params = {
+            "page": "pool",
+            "s": "show",
+            "id": pool_id
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
+        return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
+
+    def list_post_ids_from_favorites(self, user: int) -> list[int]:
+        """
+        Lists IDs of posts from a user's favorites.
+
+        # Parameters
+        ---
+        user : int
+            The ID of the user you're getting the favorites from.
+        """
+        params = {
+            "page": "favorites",
+            "s": "view",
+            "id": user
+        }
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+        }
+        response = self._get_with_retry("https://rule34.xxx/index.php", params=params, headers=headers)
+        return self._get_post_ids_from_html(html=response.content.decode("utf-8"), base_url="https://rule34.xxx/index.php", params=params)
+
     def autocomplete(self, query: str) -> list[Autocompletion]:
         """
         Gets autocompletions from an incomplete tag.
