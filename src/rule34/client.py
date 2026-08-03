@@ -1,5 +1,4 @@
 from pydantic.dataclasses import dataclass
-import shlex
 import requests
 from .posts import Post
 from pathlib import Path
@@ -87,7 +86,7 @@ class Client:
         def extract_ids(h: str) -> list[int]:
             soup = BeautifulSoup(h, "lxml")
             post_ids = []
-            for tag in soup.find_all(["span", "a"], id=lambda v: v and v.startswith("p")):
+            for tag in soup.find_all(["span", "a"], id=lambda v: v and v.startswith("p")): # type: ignore
                 try:
                     post_ids.append(int(tag["id"][1:]))
                 except ValueError:
@@ -105,7 +104,9 @@ class Client:
             # <a alt="last page">
             last_a = paginator.find("a", alt="last page")
             if last_a:
-                for part in last_a.get("href", "").split("&"):
+                raw_href = last_a.get("href", "")
+                assert isinstance(raw_href, str) and raw_href, "last page link has no href"
+                for part in raw_href.split("&"):
                     if part.startswith("pid="):
                         try:
                             last_pid = int(part[4:])
@@ -116,7 +117,10 @@ class Client:
             if last_pid is None:
                 last_a = paginator.find("a", attrs={"name": "lastpage"})
                 if last_a:
-                    for part in last_a.get("onclick", "").replace("&amp;", "&").split("&"):
+                    _raw_last_a_onclick = last_a.get("onclick", "")
+                    assert isinstance(_raw_last_a_onclick, str)
+                    last_a_onclick = _raw_last_a_onclick
+                    for part in last_a_onclick.replace("&amp;", "&").split("&"):
                         if part.startswith("pid="):
                             try:
                                 #last_pid = int(part.split(";")[0].split(" ")[0][4:])
@@ -292,11 +296,14 @@ class Client:
         logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get post ids from html")
         
         start = time.perf_counter()
-        posts = []
+        posts: list[Post] = []
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = {executor.submit(self.get_post, post_id=post): post for post in post_ids}
             for future in as_completed(futures):
-                posts.append(future.result())
+                result = future.result()
+                if result is not None:
+                    posts.append(result)
+
         logger.debug(f"Took {round(time.perf_counter()-start, 2)} seconds to get all Post objects")
 
         return posts
