@@ -8,25 +8,8 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 
-class Formatter(logging.Formatter):
-    format_str = "[%(levelname)s] %(level_symbol)s %(name)s: %(message)s"
-
-    symbols = {
-        logging.DEBUG: "\x1b[37m.\x1b[0m",
-        logging.INFO: "\x1b[32m-\x1b[0m",
-        logging.WARNING: "\x1b[33m!\x1b[0m",
-        logging.ERROR: "\x1b[31m!!\x1b[0m",
-        logging.CRITICAL: "\x1b[41m!!!\x1b[0m"
-    }
-
-    def format(self, record):
-        record.level_symbol = self.symbols.get(record.levelno, "?")
-        formatter = logging.Formatter(self.format_str)
-        return formatter.format(record)
-
 logger = logging.getLogger("rule34-client")
 handler = logging.StreamHandler()
-handler.setFormatter(Formatter())
 logger.addHandler(handler)
 logger.setLevel(logging.WARNING)
 
